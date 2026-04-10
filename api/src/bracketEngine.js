@@ -123,9 +123,11 @@ function generateSingleElim(teams, bracketSize, matches, rounds) {
   for (let ri = allRounds.length - 1; ri >= 0; ri--) {
     const { round, count } = allRounds[ri];
     const nextRound = allRounds[ri + 1];
+    const matchIds = [];
 
     for (let slot = 1; slot <= count; slot++) {
       const id = `ub_r${round}_m${slot}`;
+      matchIds.push(id);
       const nextWinMatchId = nextRound
         ? `ub_r${nextRound.round}_m${Math.ceil(slot / 2)}`
         : null;
@@ -161,7 +163,7 @@ function generateSingleElim(teams, bracketSize, matches, rounds) {
         });
       }
     }
-    rounds.push({ id: `ub_r${round}`, name: `Round of ${bracketSize * 2 / Math.pow(2, round - 1)}`, bracket: 'UB' });
+    rounds.push({ id: `ub_r${round}`, name: `Round of ${bracketSize * 2 / Math.pow(2, round - 1)}`, bracket: 'UB', matchIds });
   }
 
   return { matches, rounds };
