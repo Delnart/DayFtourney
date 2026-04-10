@@ -16,8 +16,8 @@ services:
       - key: ALLOWED_ORIGINS
         sync: false   # Set in Render dashboard: your Netlify URL
 
-  # --- Discord Bot (Python) ---
-  - type: worker
+  # --- Discord Bot (Python) — runs as Web Service so Render keeps it alive ---
+  - type: web
     name: dayftourn-bot
     runtime: python
     rootDir: bot
