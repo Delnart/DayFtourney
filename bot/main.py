@@ -44,7 +44,7 @@ ADMIN_ROLE_IDS: list[int] = []
 
 # --- Bot setup ---
 intents = nextcord.Intents.default()
-bot = commands.Bot(intents=intents)
+bot = commands.Bot(intents=intents, default_guild_ids=[GUILD_ID])
 
 
 # ──────────────────────────────────────────────
