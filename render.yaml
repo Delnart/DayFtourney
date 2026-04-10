@@ -1,21 +1,39 @@
 services:
-  # API + Discord Bot (same process, both run together)
+  # --- REST API (Node.js) ---
   - type: web
-    name: tournament-api
+    name: dayftourn-api
     runtime: node
-    rootDir: server
+    rootDir: api
     buildCommand: npm install
-    startCommand: node index.js
+    startCommand: node src/index.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 3001
+      - key: API_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false   # Set in Render dashboard: your Netlify URL
+
+  # --- Discord Bot (Python) ---
+  - type: worker
+    name: dayftourn-bot
+    runtime: python
+    rootDir: bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
       - key: BOT_TOKEN
-        sync: false
-      - key: CLIENT_ID
         sync: false
       - key: GUILD_ID
         sync: false
       - key: RESULTS_CHANNEL_ID
         sync: false
+      - key: API_URL
+        sync: false   # Set to: https://dayftourn-api.onrender.com
       - key: API_SECRET
-        generateValue: true
+        fromService:
+          name: dayftourn-api
+          type: web
+          envVarKey: API_SECRET
