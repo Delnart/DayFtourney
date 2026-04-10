@@ -1,0 +1,19 @@
+{
+  "config": {
+    "name": "Day F 2026",
+    "stage1MaxTeams": 64,
+    "stage1Advance": 16,
+    "adminRoleIds": []
+  },
+  "teams": {},
+  "stage1": {
+    "generated": false,
+    "matches": {},
+    "rounds": []
+  },
+  "stage2": {
+    "generated": false,
+    "matches": {},
+    "rounds": []
+  }
+}

@@ -1,0 +1,21 @@
+services:
+  # API + Discord Bot (same process, both run together)
+  - type: web
+    name: tournament-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        sync: false
+      - key: GUILD_ID
+        sync: false
+      - key: RESULTS_CHANNEL_ID
+        sync: false
+      - key: API_SECRET
+        generateValue: true
