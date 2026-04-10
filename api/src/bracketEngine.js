@@ -119,11 +119,19 @@ function generateSingleElim(teams, bracketSize, matches, rounds) {
     r++;
   }
 
+  function getRoundName(matchCount) {
+    if (matchCount === 1) return 'Final';
+    if (matchCount === 2) return 'Semifinal';
+    if (matchCount === 4) return 'Quarterfinal';
+    return `Round of ${matchCount * 2}`;
+  }
+
   // Create matches from last round to first (to know nextWinMatchId)
   for (let ri = allRounds.length - 1; ri >= 0; ri--) {
     const { round, count } = allRounds[ri];
     const nextRound = allRounds[ri + 1];
     const matchIds = [];
+    const rName = getRoundName(count);
 
     for (let slot = 1; slot <= count; slot++) {
       const id = `ub_r${round}_m${slot}`;
@@ -144,7 +152,7 @@ function generateSingleElim(teams, bracketSize, matches, rounds) {
         const winner = team1 || team2;
         matches[id] = createMatch(id, {
           team1, team2,
-          roundName: `Round of ${bracketSize * 2}`,
+          roundName: rName,
           bracket: 'UB',
           nextWinMatchId,
           nextLoseMatchId: null,
@@ -156,14 +164,14 @@ function generateSingleElim(teams, bracketSize, matches, rounds) {
         matches[id] = createMatch(id, {
           team1,
           team2,
-          roundName: round === allRounds.length ? 'Final' : `Round of ${bracketSize * 2 / Math.pow(2, round - 1)}`,
+          roundName: rName,
           bracket: 'UB',
           nextWinMatchId,
           nextLoseMatchId: null,
         });
       }
     }
-    rounds.push({ id: `ub_r${round}`, name: `Round of ${bracketSize * 2 / Math.pow(2, round - 1)}`, bracket: 'UB', matchIds });
+    rounds.unshift({ id: `ub_r${round}`, name: rName, bracket: 'UB', matchIds });
   }
 
   return { matches, rounds };
