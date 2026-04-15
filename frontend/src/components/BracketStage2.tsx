@@ -13,7 +13,7 @@ export const BracketStage2: React.FC<BracketStage2Props> = ({ stage }) => {
     return (
       <div className="empty-state">
         <h3>⏳ Stage 2 not generated yet</h3>
-        <p>Use <code>/tournament generate stage2</code> in Discord after Stage 1 is complete.</p>
+        <p>Wait for Stage 1 to complete.</p>
       </div>
     );
   }

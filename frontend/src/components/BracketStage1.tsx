@@ -11,7 +11,7 @@ export const BracketStage1: React.FC<BracketStage1Props> = ({ stage }) => {
     return (
       <div className="empty-state">
         <h3>⏳ Stage 1 not generated yet</h3>
-        <p>Use <code>/tournament generate stage1</code> in Discord to start.</p>
+        <p>Wait for the tournament admins to start this stage.</p>
       </div>
     );
   }
@@ -26,14 +26,13 @@ export const BracketStage1: React.FC<BracketStage1Props> = ({ stage }) => {
       </h2>
 
       <div className="bracket-wrapper" style={{ paddingTop: '4rem' }}>
-        {rounds.map((round, rIdx) => {
+        {rounds.map((round) => {
           const matches = round.matchIds.map(mid => stage.matches[mid]).filter(Boolean);
-          const isLast = rIdx === rounds.length - 1;
 
           return (
             <div
               key={round.id}
-              className={`round-column ${isLast ? 'no-lines' : ''} ${matches.length === 1 ? 'straight-lines' : ''}`}
+              className={`round-column ${matches.length === 1 ? 'straight-lines' : ''}`}
               style={{ minWidth: '300px' }}
             >
               <div className="round-title">{round.name}</div>

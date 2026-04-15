@@ -7,6 +7,7 @@ const { readLimiter } = require('./middleware/rateLimit');
 const teamsRouter = require('./routes/teams');
 const matchesRouter = require('./routes/matches');
 const tournamentRouter = require('./routes/tournament');
+const authRouter = require('./routes/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -34,6 +35,7 @@ app.use(readLimiter);                      // Global read rate limit
 app.use('/api/teams', teamsRouter);
 app.use('/api/matches', matchesRouter);
 app.use('/api/tournament', tournamentRouter);
+app.use('/api/auth', authRouter);
 
 // --- Health check ---
 app.get('/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));

@@ -100,3 +100,12 @@ async def update_config(data: dict) -> dict:
         ) as r:
             r.raise_for_status()
             return await r.json()
+
+async def generate_admin_link() -> dict:
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"{API_URL}/api/auth/generate",
+            headers=_headers()
+        ) as r:
+            r.raise_for_status()
+            return await r.json()

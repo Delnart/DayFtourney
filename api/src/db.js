@@ -1,9 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-
-const DATA_FILE = path.join(__dirname, '../data/tournament.json');
+const mongoose = require('mongoose');
+const Tournament = require('./models/Tournament');
 
 const DEFAULT_DATA = {
+  _id: 'main_tournament',
   config: {
     name: "Day F 2026",
     stage1Advance: 16,
@@ -14,22 +13,28 @@ const DEFAULT_DATA = {
   stage2: { generated: false, matches: {}, rounds: [] }
 };
 
-function loadData() {
-  if (!fs.existsSync(DATA_FILE)) {
-    // Ensure directory exists
-    const dir = path.dirname(DATA_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    // Write default data
-    saveData(DEFAULT_DATA);
-    return DEFAULT_DATA;
+async function connectDB() {
+  if (mongoose.connection.readyState >= 1) return;
+  if (!process.env.MONGO_URI) {
+    console.warn("⚠️ MONGO_URI is not set. Database operations will fail or timeout.");
   }
-  return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+  await mongoose.connect(process.env.MONGO_URI);
+  console.log("✅ Connected to MongoDB");
 }
 
-function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+async function loadData() {
+  await connectDB();
+  let data = await Tournament.findById('main_tournament').lean();
+  if (!data) {
+    data = await Tournament.create(DEFAULT_DATA);
+    data = data.toObject();
+  }
+  return data;
 }
 
-module.exports = { loadData, saveData };
+async function saveData(data) {
+  await connectDB();
+  await Tournament.findByIdAndUpdate('main_tournament', data, { upsert: true });
+}
+
+module.exports = { connectDB, loadData, saveData };

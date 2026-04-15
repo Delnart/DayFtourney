@@ -1,13 +1,15 @@
 import { useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { BracketStage1 } from './components/BracketStage1';
 import { BracketStage2 } from './components/BracketStage2';
 import { BracketPlayoffs } from './components/BracketPlayoffs';
 import { useTournamentData } from './hooks/useTournamentData';
+import { AdminDashboard } from './pages/AdminDashboard';
 import logoSrc from './assets/Logo.png';
 
-function App() {
+function BracketHome() {
   const [activeStage, setActiveStage] = useState<'stage1' | 'stage2' | 'playoffs'>('stage1');
-  const { data, loading, error, lastUpdated } = useTournamentData();
+  const { data, loading, error } = useTournamentData();
 
   const tournamentName = data.config?.name || 'Day F 2026';
 
@@ -18,27 +20,19 @@ function App() {
           <div className="logo-container" style={{
             width: '90px', height: '90px',
             borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(255,255,255,0.0)'
+            background: 'var(--panel-bg)',
+            border: '4px solid #111',
+            boxShadow: '4px 4px 0 #111'
           }}>
             <img src={logoSrc} alt="FICE Logo" style={{ width: '86px', height: '86px', objectFit: 'contain' }} />
           </div>
           <div>
             <h1 style={{ marginBottom: 0 }}>{tournamentName}</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '0.2rem', letterSpacing: '0.05em', textTransform: 'uppercase', fontSize: '0.85rem' }}>
-              Official Tournament Bracket
-            </p>
-            {/* Live Status */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.3rem' }}>
-              <span style={{
-                width: '8px', height: '8px', borderRadius: '50%',
-                background: error ? '#E75A4D' : '#50C878',
-                display: 'inline-block',
-                boxShadow: error ? 'none' : '0 0 6px #50C878',
-              }} />
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {loading ? 'Connecting...' : error ? 'Offline (API unavailable)' : `Live • Updated ${lastUpdated?.toLocaleTimeString()}`}
-              </span>
-            </div>
+            {error && (
+              <p style={{ color: '#E75A4D', marginTop: '0.2rem', fontSize: '0.85rem' }}>
+                Offline (API unavailable)
+              </p>
+            )}
           </div>
         </div>
 
@@ -76,6 +70,17 @@ function App() {
         {!loading && activeStage === 'playoffs' && <BracketPlayoffs stage={data.stage2} />}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<BracketHome />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

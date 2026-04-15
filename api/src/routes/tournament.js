@@ -14,18 +14,18 @@ const ConfigSchema = z.object({
 });
 
 // GET /api/tournament
-router.get('/', (req, res) => {
-  res.json(loadData());
+router.get('/', async (req, res) => {
+  res.json(await loadData());
 });
 
 // POST /api/tournament/generate/:stage
-router.post('/generate/:stage', requireApiKey, writeLimiter, (req, res) => {
+router.post('/generate/:stage', requireApiKey, writeLimiter, async (req, res) => {
   const stage = req.params.stage;
   if (!['stage1', 'stage2'].includes(stage)) {
     return res.status(400).json({ error: 'Invalid stage. Use stage1 or stage2' });
   }
 
-  const data = loadData();
+  const data = await loadData();
 
   if (stage === 'stage1') {
     const teams = Object.values(data.teams);
@@ -33,7 +33,7 @@ router.post('/generate/:stage', requireApiKey, writeLimiter, (req, res) => {
 
     const { matches, rounds } = generateBracket(teams, { stageType: 'single' });
     data.stage1 = { generated: true, matches, rounds };
-    saveData(data);
+    await saveData(data);
     return res.json({
       success: true,
       stage: 'stage1',
@@ -67,7 +67,7 @@ router.post('/generate/:stage', requireApiKey, writeLimiter, (req, res) => {
 
     const { matches, rounds } = generateBracket(s2Teams, { stageType: 'double' });
     data.stage2 = { generated: true, matches, rounds };
-    saveData(data);
+    await saveData(data);
     return res.json({
       success: true,
       stage: 'stage2',
@@ -78,20 +78,20 @@ router.post('/generate/:stage', requireApiKey, writeLimiter, (req, res) => {
 });
 
 // POST /api/tournament/reset
-router.post('/reset', requireApiKey, writeLimiter, (req, res) => {
-  const data = loadData();
+router.post('/reset', requireApiKey, writeLimiter, async (req, res) => {
+  const data = await loadData();
   data.teams = {};
   data.stage1 = { generated: false, matches: {}, rounds: [] };
   data.stage2 = { generated: false, matches: {}, rounds: [] };
-  saveData(data);
+  await saveData(data);
   res.json({ success: true, message: 'Tournament reset' });
 });
 
 // PATCH /api/tournament/config
-router.patch('/config', requireApiKey, writeLimiter, validate(ConfigSchema), (req, res) => {
-  const data = loadData();
+router.patch('/config', requireApiKey, writeLimiter, validate(ConfigSchema), async (req, res) => {
+  const data = await loadData();
   Object.assign(data.config, req.body);
-  saveData(data);
+  await saveData(data);
   res.json({ success: true, config: data.config });
 });
 

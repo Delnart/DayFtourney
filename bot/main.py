@@ -89,10 +89,11 @@ async def on_ready():
         logger.warning(f"Could not load admin roles from API: {e}. Allowing all users.")
 
     # Load cogs
-    from cogs import teams, matches, tournament
+    from cogs import teams, matches, tournament, admin
     teams.setup(bot, ADMIN_ROLE_IDS)
     matches.setup(bot, ADMIN_ROLE_IDS)
     tournament.setup(bot, ADMIN_ROLE_IDS)
+    admin.setup(bot, ADMIN_ROLE_IDS)
 
     # Sync slash commands to guild
     await bot.sync_application_commands(guild_id=GUILD_ID)

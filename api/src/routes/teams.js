@@ -13,15 +13,15 @@ const TeamSchema = z.object({
 });
 
 // GET /api/teams
-router.get('/', (req, res) => {
-  const data = loadData();
+router.get('/', async (req, res) => {
+  const data = await loadData();
   res.json(Object.values(data.teams));
 });
 
 // POST /api/teams
-router.post('/', requireApiKey, writeLimiter, validate(TeamSchema), (req, res) => {
+router.post('/', requireApiKey, writeLimiter, validate(TeamSchema), async (req, res) => {
   const { name, logoUrl, day } = req.body;
-  const data = loadData();
+  const data = await loadData();
 
   // Prevent duplicate names
   const duplicate = Object.values(data.teams).find(t => t.name.toLowerCase() === name.toLowerCase());
@@ -29,17 +29,17 @@ router.post('/', requireApiKey, writeLimiter, validate(TeamSchema), (req, res) =
 
   const id = `team_${Date.now()}`;
   data.teams[id] = { id, name, logoUrl: logoUrl ?? null, day: day ?? null };
-  saveData(data);
+  await saveData(data);
   res.status(201).json({ success: true, team: data.teams[id] });
 });
 
 // DELETE /api/teams/:id
-router.delete('/:id', requireApiKey, writeLimiter, (req, res) => {
-  const data = loadData();
+router.delete('/:id', requireApiKey, writeLimiter, async (req, res) => {
+  const data = await loadData();
   if (!data.teams[req.params.id]) return res.status(404).json({ error: 'Team not found' });
   const team = data.teams[req.params.id];
   delete data.teams[req.params.id];
-  saveData(data);
+  await saveData(data);
   res.json({ success: true, deleted: team });
 });
 
