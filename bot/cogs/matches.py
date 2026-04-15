@@ -22,7 +22,7 @@ class MatchResultModal(ui.Modal):
             required=True,
         )
         self.match_input = ui.TextInput(
-            label="Match ID (e.g. ub_r1_m1)",
+            label="Match ID (e.g. 17)",
             required=True,
         )
         self.winner_input = ui.TextInput(
@@ -114,7 +114,7 @@ class MatchScheduleModal(ui.Modal):
             required=True,
         )
         self.match_input = ui.TextInput(
-            label="Match ID (e.g. ub_r2_m1)",
+            label="Match ID (e.g. 29)",
             required=True,
         )
         self.date_input = ui.TextInput(
@@ -204,7 +204,7 @@ class MatchesCog(commands.Cog):
             choices={"Stage 1": "stage1", "Stage 2": "stage2"},
             required=True,
         ),
-        match_id: str = SlashOption(description="Match ID (e.g. ub_r1_m1)", required=True),
+        match_id: str = SlashOption(description="Match ID (e.g. 17)", required=True),
     ):
         await interaction.response.defer(ephemeral=True)
         try:

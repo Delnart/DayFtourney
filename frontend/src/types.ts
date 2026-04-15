@@ -28,6 +28,7 @@ export interface TournamentRound {
   id: string;
   name: string;
   bracket: 'UB' | 'LB' | 'GF' | 'THIRD';
+  day?: 1 | 2 | 3 | 4;
   matchIds: string[];
 }
 

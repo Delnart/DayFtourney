@@ -4,7 +4,7 @@ import { BracketStage1 } from './components/BracketStage1';
 import { BracketStage2 } from './components/BracketStage2';
 import { BracketPlayoffs } from './components/BracketPlayoffs';
 import { useTournamentData } from './hooks/useTournamentData';
-import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminDashboard } from './pages/AdminPortal';
 import logoSrc from './assets/Logo.png';
 
 function BracketHome() {

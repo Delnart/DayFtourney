@@ -1,13 +1,10 @@
 /**
  * Double Elimination Bracket Engine
- * Generates a complete tournament bracket for N teams (any count).
- * Adds "bye" slots automatically if N is not a power of 2.
+ * Generates qualifiers down to 16 teams, then a fixed 16-team main event.
  *
  * Match ID scheme:
- *   UB: ub_r{round}_m{slot}
- *   LB: lb_r{round}_m{slot}
- *   GF: gf_1
- *   3rd: third_1
+ *   Stage 1: 1..N (qualifiers)
+ *   Stage 2: 17..46 (main event)
  *
  * Each match has: nextWinMatchId, nextLoseMatchId (null if eliminated)
  */
@@ -50,6 +47,13 @@ function generateFirstRoundPairs(teams, slotCount) {
   return pairs;
 }
 
+function getMatchWinnerTeam(match) {
+  if (!match?.winnerId) return null;
+  if (match.team1?.id === match.winnerId) return match.team1;
+  if (match.team2?.id === match.winnerId) return match.team2;
+  return null;
+}
+
 /**
  * Main function: generate the full bracket
  * @param {Array} teams - Array of { id, name, logoUrl }
@@ -57,19 +61,15 @@ function generateFirstRoundPairs(teams, slotCount) {
  * @returns {Object} { matches: Record<string, MatchDef>, rounds: RoundDef[] }
  */
 function generateBracket(teams, options = {}) {
-  const { stageType = 'double' } = options;
-  const n = teams.length;
-  const bracketSize = nextPowerOf2(n);
-  const byes = bracketSize - n;
-
   const matches = {};
   const rounds = [];
 
-  if (stageType === 'single') {
-    return generateSingleElim(teams, bracketSize, matches, rounds);
+  if (options.stageType === 'single') {
+    const targetAdvanceCount = options.targetAdvanceCount || 16;
+    return generateSingleElim(teams, targetAdvanceCount, matches, rounds);
   }
 
-  return generateDoubleElim(teams, bracketSize, matches, rounds);
+  return generateDoubleElim(teams, matches, rounds);
 }
 
 function createMatch(id, { team1, team2, roundName, bracket, bo, scheduledDate, streamUrl, nextWinMatchId, nextLoseMatchId }) {
@@ -95,217 +95,244 @@ function createMatch(id, { team1, team2, roundName, bracket, bo, scheduledDate, 
 /**
  * Single elimination generator (for qualifier stage)
  */
-function generateSingleElim(teams, bracketSize, matches, rounds) {
-  const ubRound1Count = bracketSize / 2;
-  const pairs = generateFirstRoundPairs(teams, bracketSize);
+function generateSingleElim(teams, targetAdvanceCount, matches, rounds) {
+  if (teams.length <= targetAdvanceCount) {
+    return { matches, rounds };
+  }
+
+  const roundSizes = [];
+  let currentRoundSize = nextPowerOf2(teams.length);
+  while (currentRoundSize > targetAdvanceCount) {
+    roundSizes.push(currentRoundSize);
+    currentRoundSize = Math.floor(currentRoundSize / 2);
+  }
+
+  const firstRoundPairs = generateFirstRoundPairs(teams, roundSizes[0]);
   let matchCounter = 1;
 
-  // Build round structure bottom-up
-  function buildUBRound(roundNum, count) {
-    const roundMatches = [];
-    for (let slot = 1; slot <= count; slot++) {
-      const id = `ub_r${roundNum}_m${slot}`;
-      roundMatches.push(id);
-    }
-    return roundMatches;
-  }
-
-  // Generate all UB round slot IDs
-  const allRounds = [];
-  let count = ubRound1Count;
-  let r = 1;
-  while (count >= 1) {
-    allRounds.push({ round: r, count });
-    count = Math.floor(count / 2);
-    r++;
-  }
-
-  function getRoundName(matchCount) {
-    if (matchCount === 1) return 'Final';
-    if (matchCount === 2) return 'Semifinal';
-    if (matchCount === 4) return 'Quarterfinal';
-    return `Round of ${matchCount * 2}`;
-  }
-
-  // Create matches from last round to first (to know nextWinMatchId)
-  for (let ri = allRounds.length - 1; ri >= 0; ri--) {
-    const { round, count } = allRounds[ri];
-    const nextRound = allRounds[ri + 1];
+  roundSizes.forEach((roundSize, roundIndex) => {
+    const matchCount = roundSize / 2;
     const matchIds = [];
-    const rName = getRoundName(count);
+    const roundStartId = matchCounter;
+    const nextRound = roundSizes[roundIndex + 1];
+    const nextRoundStartId = nextRound ? roundStartId + matchCount : null;
+    const roundName = `Round of ${roundSize}`;
 
-    for (let slot = 1; slot <= count; slot++) {
-      const id = `ub_r${round}_m${slot}`;
+    for (let slot = 0; slot < matchCount; slot++) {
+      const id = String(matchCounter++);
       matchIds.push(id);
-      const nextWinMatchId = nextRound
-        ? `ub_r${nextRound.round}_m${Math.ceil(slot / 2)}`
-        : null;
 
-      let team1 = null, team2 = null;
-      if (round === 1) {
-        const pair = pairs[slot - 1];
-        team1 = pair[0];
-        team2 = pair[1];
+      let team1 = null;
+      let team2 = null;
+      if (roundIndex === 0) {
+        const pair = firstRoundPairs[slot] || [null, null];
+        [team1, team2] = pair;
       }
 
-      // Handle byes: if one team is null, auto-advance the other
-      if (round === 1 && (team1 === null || team2 === null)) {
+      const nextWinMatchId = nextRoundStartId ? String(nextRoundStartId + Math.floor(slot / 2)) : null;
+
+      matches[id] = createMatch(id, {
+        team1,
+        team2,
+        roundName,
+        bracket: 'UB',
+        bo: 1,
+        nextWinMatchId,
+        nextLoseMatchId: null,
+      });
+
+      if (roundIndex === 0 && (!team1 || !team2)) {
         const winner = team1 || team2;
-        matches[id] = createMatch(id, {
-          team1, team2,
-          roundName: rName,
-          bracket: 'UB',
-          nextWinMatchId,
-          nextLoseMatchId: null,
-          state: 'bye',
-        });
         matches[id].winnerId = winner?.id || null;
         matches[id].state = 'bye';
-      } else {
-        matches[id] = createMatch(id, {
-          team1,
-          team2,
-          roundName: rName,
-          bracket: 'UB',
-          nextWinMatchId,
-          nextLoseMatchId: null,
-        });
       }
     }
-    rounds.unshift({ id: `ub_r${round}`, name: rName, bracket: 'UB', matchIds });
-  }
+
+    rounds.push({
+      id: `stage1_r${roundIndex + 1}`,
+      name: roundName,
+      bracket: 'UB',
+      day: 1,
+      matchIds,
+    });
+  });
 
   return { matches, rounds };
 }
 
 /**
  * Double elimination generator (for main event).
- * For N teams (must be power of 2).
- * UB has log2(N) rounds feeding into GF.
- * LB has 2*(log2(N)-1) rounds.
+ * Fixed 16-team bracket with the exact 30-match main event structure.
  */
-function generateDoubleElim(teams, bracketSize, matches, rounds) {
-  const n = bracketSize;
-  const ubRounds = Math.log2(n); // e.g. 16 teams → 4 UB rounds
-  const lbRounds = 2 * (ubRounds - 1); // e.g. 6 LB rounds
+function generateDoubleElim(teams, matches, rounds) {
+  const mainTeams = [...teams.slice(0, 16)];
+  while (mainTeams.length < 16) mainTeams.push(null);
 
-  const pairs = generateFirstRoundPairs(teams, n);
+  const ro16Pairs = generateFirstRoundPairs(mainTeams, 16);
 
-  // --- Build UB round structure ---
-  // UB R1: n/2 matches, R2: n/4, ..., UB Final: 1 match
-  const ubMatchIds = {};
-  for (let r = 1; r <= ubRounds; r++) {
-    const count = n / Math.pow(2, r);
-    ubMatchIds[r] = [];
-    for (let s = 1; s <= count; s++) {
-      ubMatchIds[r].push(`ub_r${r}_m${s}`);
-    }
-  }
+  const roundDefinitions = {
+    ro16: { id: 'stage2_ro16', name: 'RO16 UB', bracket: 'UB', day: 2, matchIds: ['17', '18', '19', '20', '21', '22', '23', '24'] },
+    lb1: { id: 'stage2_lb1', name: 'LB Stage 1', bracket: 'LB', day: 2, matchIds: ['25', '26', '27', '28'] },
+    qf: { id: 'stage2_qf', name: 'Quarterfinal UB', bracket: 'UB', day: 2, matchIds: ['29', '30', '31', '32'] },
+    lb2: { id: 'stage2_lb2', name: 'LB Stage 2', bracket: 'LB', day: 2, matchIds: ['33', '34', '35', '36'] },
+    sf: { id: 'stage2_sf', name: 'Semifinal UB', bracket: 'UB', day: 3, matchIds: ['37', '38'] },
+    lb3: { id: 'stage2_lb3', name: 'LB Stage 3', bracket: 'LB', day: 3, matchIds: ['39', '40'] },
+    lb4: { id: 'stage2_lb4', name: 'LB Stage 4', bracket: 'LB', day: 3, matchIds: ['41', '42'] },
+    lbSemi: { id: 'stage2_lbSemi', name: 'LB Semifinal', bracket: 'LB', day: 3, matchIds: ['43'] },
+    ubFinal: { id: 'stage2_ubFinal', name: 'UB Final', bracket: 'UB', day: 4, matchIds: ['44'] },
+    lbFinal: { id: 'stage2_lbFinal', name: 'LB Final (3rd Place)', bracket: 'LB', day: 4, matchIds: ['45'] },
+    gf: { id: 'stage2_gf', name: 'Grand Final', bracket: 'GF', day: 4, matchIds: ['46'] },
+  };
 
-  // --- Build LB round structure ---
-  // LB has 2*(ubRounds-1) rounds. Counts:
-  // LB R1: n/4, LB R2: n/4, LB R3: n/8, LB R4: n/8, ...
-  const lbMatchIds = {};
-  let lbCount = n / 4;
-  for (let r = 1; r <= lbRounds; r++) {
-    lbMatchIds[r] = [];
-    const count = r % 2 === 1 ? lbCount : lbCount; // same count for pairs of rounds
-    for (let s = 1; s <= count; s++) {
-      lbMatchIds[r].push(`lb_r${r}_m${s}`);
-    }
-    if (r % 2 === 0 && lbCount > 1) lbCount = Math.floor(lbCount / 2);
-  }
+  const ro16NextLose = ['25', '26', '27', '28', '28', '27', '26', '25'];
+  const qfNextLose = ['36', '35', '34', '33'];
+  const sfNextLose = ['42', '41'];
 
-  // GF and 3rd place
-  const gfId = 'gf_1';
-  const thirdId = 'third_1';
-
-  // --- Create UB matches forward (R1 first, last round = UB Final) ---
-  for (let r = 1; r <= ubRounds; r++) {
-    const ids = ubMatchIds[r];
-    const nextRoundIds = ubMatchIds[r + 1];
-    // LB round that receives losers from UB round r
-    const lbDropRound = r === 1 ? 1 : r * 2 - 2;
-
-    ids.forEach((id, idx) => {
-      const slot = idx + 1;
-      const nextWinMatchId = r < ubRounds
-        ? ubMatchIds[r + 1][Math.floor(idx / 2)]
-        : gfId;
-
-      // Losers from UB R1 → LB R1, UB R2 → LB R2, etc.
-      const lbDropMatchIds = lbMatchIds[lbDropRound] || [];
-      const nextLoseMatchId = lbDropMatchIds[Math.floor(idx / 2)] || null;
-
-      let team1 = null, team2 = null;
-      if (r === 1) {
-        const pair = pairs[idx];
-        team1 = pair ? pair[0] : null;
-        team2 = pair ? pair[1] : null;
-      }
-
-      const roundName = r === ubRounds ? 'UB Final'
-        : r === ubRounds - 1 ? 'UB Semifinals'
-        : r === ubRounds - 2 ? 'UB Quarterfinals'
-        : `UB Round ${r}`;
-
-      matches[id] = createMatch(id, {
-        team1, team2, roundName, bracket: 'UB',
-        nextWinMatchId, nextLoseMatchId,
-        bo: r >= ubRounds - 1 ? 3 : 1,
-      });
-
-      // Auto-advance byes
-      if (r === 1 && (!team1 || !team2)) {
-        const winner = team1 || team2;
-        matches[id].winnerId = winner?.id || null;
-        matches[id].state = 'bye';
-      }
+  const createRoundMatches = (round, builder) => {
+    round.matchIds.forEach((matchId, index) => {
+      builder(matchId, index);
     });
-    rounds.push({ id: `ub_r${r}`, name: ubMatchIds[r][0] ? matches[ubMatchIds[r][0]]?.roundName : `UB R${r}`, bracket: 'UB', matchIds: ids });
-  }
+    rounds.push(round);
+  };
 
-  // --- Create LB matches ---
-  for (let r = 1; r <= lbRounds; r++) {
-    const ids = lbMatchIds[r];
-    const nextRoundIds = lbMatchIds[r + 1] || [];
-    const isLastLBRound = r === lbRounds;
-
-    ids.forEach((id, idx) => {
-      const nextWinMatchId = isLastLBRound
-        ? gfId  // LB Final winner goes to GF
-        : nextRoundIds[Math.floor(idx / 2)] || null;
-
-      // Loser of first GF goes to 3rd place match if doing best-of-3 GF
-      const roundName = isLastLBRound ? 'LB Final'
-        : r === lbRounds - 1 ? 'LB Semifinals'
-        : `LB Round ${r}`;
-
-      matches[id] = createMatch(id, {
-        team1: null, team2: null, roundName, bracket: 'LB',
-        nextWinMatchId, nextLoseMatchId: null, // losers eliminated from LB
-        bo: isLastLBRound || r === lbRounds - 1 ? 3 : 1,
-      });
+  createRoundMatches(roundDefinitions.ro16, (matchId, index) => {
+    const pair = ro16Pairs[index] || [null, null];
+    matches[matchId] = createMatch(matchId, {
+      team1: pair[0],
+      team2: pair[1],
+      roundName: roundDefinitions.ro16.name,
+      bracket: 'UB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.qf.matchIds[Math.floor(index / 2)],
+      nextLoseMatchId: ro16NextLose[index] || null,
     });
-    rounds.push({ id: `lb_r${r}`, name: matches[lbMatchIds[r][0]]?.roundName || `LB R${r}`, bracket: 'LB', matchIds: ids });
-  }
 
-  // --- Grand Final ---
-  matches[gfId] = createMatch(gfId, {
-    team1: null, team2: null, roundName: 'Grand Final',
-    bracket: 'GF', bo: 3,
-    nextWinMatchId: null, nextLoseMatchId: thirdId,
+    if (!pair[0] || !pair[1]) {
+      const winner = pair[0] || pair[1];
+      matches[matchId].winnerId = winner?.id || null;
+      matches[matchId].state = 'bye';
+    }
   });
 
-  // --- 3rd Place ---
-  matches[thirdId] = createMatch(thirdId, {
-    team1: null, team2: null, roundName: '3rd Place',
-    bracket: 'THIRD', bo: 3,
-    nextWinMatchId: null, nextLoseMatchId: null,
+  createRoundMatches(roundDefinitions.lb1, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lb1.name,
+      bracket: 'LB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.lb2.matchIds[index],
+      nextLoseMatchId: null,
+    });
   });
 
-  rounds.push({ id: 'gf', name: 'Grand Final', bracket: 'GF', matchIds: [gfId] });
-  rounds.push({ id: 'third', name: '3rd Place', bracket: 'THIRD', matchIds: [thirdId] });
+  createRoundMatches(roundDefinitions.qf, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.qf.name,
+      bracket: 'UB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.sf.matchIds[Math.floor(index / 2)],
+      nextLoseMatchId: qfNextLose[index] || null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.lb2, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lb2.name,
+      bracket: 'LB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.lb3.matchIds[Math.floor(index / 2)],
+      nextLoseMatchId: null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.sf, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.sf.name,
+      bracket: 'UB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.ubFinal.matchIds[0],
+      nextLoseMatchId: sfNextLose[index] || null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.lb3, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lb3.name,
+      bracket: 'LB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.lb4.matchIds[index],
+      nextLoseMatchId: null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.lb4, (matchId, index) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lb4.name,
+      bracket: 'LB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.lbSemi.matchIds[0],
+      nextLoseMatchId: null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.lbSemi, (matchId) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lbSemi.name,
+      bracket: 'LB',
+      bo: 1,
+      nextWinMatchId: roundDefinitions.lbFinal.matchIds[0],
+      nextLoseMatchId: null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.ubFinal, (matchId) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.ubFinal.name,
+      bracket: 'UB',
+      bo: 3,
+      nextWinMatchId: roundDefinitions.gf.matchIds[0],
+      nextLoseMatchId: roundDefinitions.lbFinal.matchIds[0],
+    });
+  });
+
+  createRoundMatches(roundDefinitions.lbFinal, (matchId) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.lbFinal.name,
+      bracket: 'LB',
+      bo: 3,
+      nextWinMatchId: roundDefinitions.gf.matchIds[0],
+      nextLoseMatchId: null,
+    });
+  });
+
+  createRoundMatches(roundDefinitions.gf, (matchId) => {
+    matches[matchId] = createMatch(matchId, {
+      team1: null,
+      team2: null,
+      roundName: roundDefinitions.gf.name,
+      bracket: 'GF',
+      bo: 3,
+      nextWinMatchId: null,
+      nextLoseMatchId: null,
+    });
+  });
 
   return { matches, rounds };
 }
@@ -363,4 +390,4 @@ function processMatchResult(tournament, matchId, winnerId, score1, score2) {
   return tournament;
 }
 
-module.exports = { generateBracket, generateSingleElim, generateDoubleElim, processMatchResult, nextPowerOf2 };
+module.exports = { generateBracket, generateSingleElim, generateDoubleElim, processMatchResult, nextPowerOf2, getMatchWinnerTeam };

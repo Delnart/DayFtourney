@@ -88,11 +88,8 @@ async def on_ready():
     except Exception as e:
         logger.warning(f"Could not load admin roles from API: {e}. Allowing all users.")
 
-    # Load cogs
-    from cogs import teams, matches, tournament, admin
-    teams.setup(bot, ADMIN_ROLE_IDS)
-    matches.setup(bot, ADMIN_ROLE_IDS)
-    tournament.setup(bot, ADMIN_ROLE_IDS)
+    # Load only the admin gateway command. All other management moves to the web UI.
+    from cogs import admin
     admin.setup(bot, ADMIN_ROLE_IDS)
 
     # Sync slash commands to guild

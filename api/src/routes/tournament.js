@@ -3,7 +3,7 @@ const { requireApiKey } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimit');
 const { validate, z } = require('../middleware/validate');
 const { loadData, saveData } = require('../db');
-const { generateBracket, nextPowerOf2 } = require('../bracketEngine');
+const { generateBracket, nextPowerOf2, getMatchWinnerTeam } = require('../bracketEngine');
 
 const router = Router();
 
@@ -31,39 +31,50 @@ router.post('/generate/:stage', requireApiKey, writeLimiter, async (req, res) =>
     const teams = Object.values(data.teams);
     if (teams.length < 2) return res.status(400).json({ error: 'Need at least 2 teams to generate bracket' });
 
-    const { matches, rounds } = generateBracket(teams, { stageType: 'single' });
+    const { matches, rounds } = generateBracket(teams, { stageType: 'single', targetAdvanceCount: 16 });
     data.stage1 = { generated: true, matches, rounds };
     await saveData(data);
     return res.json({
       success: true,
       stage: 'stage1',
       teamCount: teams.length,
-      bracketSize: nextPowerOf2(teams.length),
+      bracketSize: Math.max(16, nextPowerOf2(teams.length)),
       matchCount: Object.keys(matches).length,
     });
   }
 
   if (stage === 'stage2') {
-    if (!data.stage1.generated) {
-      return res.status(400).json({ error: 'Generate stage1 first' });
-    }
+    const stage1Rounds = data.stage1?.rounds || [];
+    const hasQualifierRounds = data.stage1.generated && stage1Rounds.length > 0;
 
-    // Collect winners from stage1 last round
-    const lastRound = data.stage1.rounds[data.stage1.rounds.length - 1];
-    const advancers = [];
-    if (lastRound) {
+    let s2Teams;
+    if (hasQualifierRounds) {
+      const lastRound = stage1Rounds[stage1Rounds.length - 1];
+      const advancers = [];
+
       lastRound.matchIds?.forEach(mid => {
-        const m = data.stage1.matches[mid];
-        if (m?.winnerId) {
-          const t = Object.values(data.teams).find(t => t.id === m.winnerId)
-            || m.team1?.id === m.winnerId ? m.team1 : m.team2;
-          if (t) advancers.push(t);
-        }
+        const match = data.stage1.matches[mid];
+        const winner = getMatchWinnerTeam(match);
+        if (winner) advancers.push(winner);
       });
+
+      if (advancers.length !== 16) {
+        return res.status(400).json({
+          error: `Stage 1 must finish with exactly 16 advancers before Stage 2 can be generated (currently ${advancers.length})`,
+        });
+      }
+
+      s2Teams = advancers;
+    } else {
+      s2Teams = Object.values(data.teams);
+      if (s2Teams.length > 16) {
+        return res.status(400).json({ error: 'Generate stage1 first to reduce the field to 16 teams' });
+      }
     }
 
-    const s2Teams = advancers.length >= 2 ? advancers
-      : Object.values(data.teams).slice(0, data.config.stage1Advance || 16);
+    if (s2Teams.length < 2) {
+      return res.status(400).json({ error: 'Need at least 2 teams to generate the main event' });
+    }
 
     const { matches, rounds } = generateBracket(s2Teams, { stageType: 'double' });
     data.stage2 = { generated: true, matches, rounds };
@@ -72,6 +83,7 @@ router.post('/generate/:stage', requireApiKey, writeLimiter, async (req, res) =>
       success: true,
       stage: 'stage2',
       teamCount: s2Teams.length,
+      bracketSize: 16,
       matchCount: Object.keys(matches).length,
     });
   }

@@ -18,8 +18,8 @@ export const BracketStage2: React.FC<BracketStage2Props> = ({ stage }) => {
     );
   }
 
-  const ubRounds = stage.rounds.filter(r => r.bracket === 'UB');
-  const lbRounds = stage.rounds.filter(r => r.bracket === 'LB');
+  const ubRounds = stage.rounds.filter(r => r.bracket === 'UB' && r.day !== 4);
+  const lbRounds = stage.rounds.filter(r => r.bracket === 'LB' && r.day !== 4);
 
   const renderBracket = (rounds: typeof ubRounds) => (
     <div className="bracket-wrapper" style={{ paddingTop: '4rem' }}>
@@ -51,8 +51,11 @@ export const BracketStage2: React.FC<BracketStage2Props> = ({ stage }) => {
   return (
     <div style={{ animation: 'fadeIn 0.5s ease' }}>
       <h2 style={{ marginBottom: '1.5rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-        <strong style={{ color: 'var(--text-main)' }}>Stage 2: Main Event</strong> • Double Elimination
+        <strong style={{ color: 'var(--text-main)' }}>Days 2-3: Online Main Event</strong> • Double Elimination
       </h2>
+      <p style={{ marginBottom: '1.5rem', color: 'var(--text-muted)' }}>
+        Day 4 LAN finals are shown in the Playoffs tab.
+      </p>
 
       {/* UB / LB Toggle */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem' }}>

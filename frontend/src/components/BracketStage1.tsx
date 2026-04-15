@@ -19,10 +19,19 @@ export const BracketStage1: React.FC<BracketStage1Props> = ({ stage }) => {
   // Group rounds
   const rounds = stage.rounds.filter(r => r.bracket === 'UB');
 
+  if (rounds.length === 0) {
+    return (
+      <div className="empty-state">
+        <h3>✅ No qualifiers needed</h3>
+        <p>All registered teams advance directly to Stage 2.</p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ animation: 'fadeIn 0.5s ease' }}>
       <h2 style={{ marginBottom: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-        <strong style={{ color: 'var(--text-main)' }}>Stage 1: Qualifiers</strong> • Single Elimination • Top {/* show bracket size / 2 */} advance
+        <strong style={{ color: 'var(--text-main)' }}>Day 1: Online Qualifiers</strong> • Single Elimination • Top 16 advance
       </h2>
 
       <div className="bracket-wrapper" style={{ paddingTop: '4rem' }}>
