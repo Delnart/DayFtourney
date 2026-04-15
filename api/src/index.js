@@ -10,6 +10,7 @@ const tournamentRouter = require('./routes/tournament');
 const authRouter = require('./routes/auth');
 
 const app = express();
+app.set('trust proxy', 1); // Trust the reverse proxy on Render for rate-limiting
 const PORT = process.env.PORT || 3001;
 
 // --- Security headers ---
