@@ -9,11 +9,10 @@ export function AdminDashboard() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { data, loading: dataLoading, mutate } = useTournamentData();
+  const { data, loading: dataLoading, refetch } = useTournamentData();
   
   // Variables for match form
   const [selectedStage, setSelectedStage] = useState<'stage1' | 'stage2'>('stage1');
-  const [selectedMatchPrefix, setSelectedMatchPrefix] = useState('ub');
   const [selectedMatchIdx, setSelectedMatchIdx] = useState(0);
   const [winnerId, setWinnerId] = useState('');
   const [score1, setScore1] = useState(0);
@@ -92,7 +91,7 @@ export function AdminDashboard() {
       const resData = await res.json();
       if (resData.success) {
         alert('Match result posted successfully!');
-        mutate(); // Reload data
+        refetch(); // Reload data
       } else {
         alert('Error: ' + resData.error);
       }
