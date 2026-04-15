@@ -13,8 +13,9 @@ router.post('/generate', requireApiKey, writeLimiter, async (req, res) => {
   try {
     await AuthToken.create({ token: rawToken });
     // Assume frontend is hosted at same domain or defined in env
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.json({ success: true, link: `${frontendUrl}/admin?token=${rawToken}` });
+    const frontendUrl = new URL(process.env.FRONTEND_URL || 'http://localhost:5173');
+    frontendUrl.hash = `/admin?token=${rawToken}`;
+    res.json({ success: true, link: frontendUrl.toString() });
   } catch (e) {
     res.status(500).json({ error: 'Failed to generate token' });
   }

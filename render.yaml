@@ -13,6 +13,8 @@ services:
         value: 3001
       - key: API_SECRET
         generateValue: true
+      - key: FRONTEND_URL
+        sync: false   # Set to your deployed frontend URL, e.g. https://your-frontend.onrender.com
       - key: ALLOWED_ORIGINS
         sync: false   # Set in Render dashboard: your Netlify URL
 
@@ -31,7 +33,7 @@ services:
       - key: RESULTS_CHANNEL_ID
         sync: false
       - key: API_URL
-        sync: false   # Set to: https://dayftourn-api.onrender.com
+        sync: false   
       - key: API_SECRET
         fromService:
           name: dayftourn-api

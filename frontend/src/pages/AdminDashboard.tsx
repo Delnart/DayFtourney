@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTournamentData } from '../hooks/useTournamentData';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export function AdminDashboard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ export function AdminDashboard() {
     const urlToken = searchParams.get('token');
     if (urlToken) {
       setLoading(true);
-      fetch('http://localhost:3001/api/auth/login', {
+      fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: urlToken })
@@ -74,7 +76,7 @@ export function AdminDashboard() {
     if (!match || !winnerId) return;
 
     try {
-      const res = await fetch('http://localhost:3001/api/matches/result', {
+      const res = await fetch(`${API_URL}/api/matches/result`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

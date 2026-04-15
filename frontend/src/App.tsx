@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import { BracketStage1 } from './components/BracketStage1';
 import { BracketStage2 } from './components/BracketStage2';
 import { BracketPlayoffs } from './components/BracketPlayoffs';
@@ -75,12 +75,12 @@ function BracketHome() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<BracketHome />} />
         <Route path="/admin" element={<AdminDashboard />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
