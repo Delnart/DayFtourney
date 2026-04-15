@@ -5,34 +5,6 @@ const { validate, z } = require('../middleware/validate');
 const { loadData, saveData } = require('../db');
 const { processMatchResult } = require('../bracketEngine');
 
-// For webhook sending
-const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-const sendWebhook = async (match, stage, winnerId) => {
-  if (!webhookUrl) return;
-  try {
-    const isStage1 = stage === 'stage1';
-    const stageName = isStage1 ? "Stage 1: Qualifiers" : "Stage 2: Main Event";
-    const teams = Object.values((await loadData()).teams);
-    const w = teams.find(t => t.id === winnerId);
-    
-    // We do a simple discord api post
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        embeds: [{
-          title: `Match Result - ${stageName}`,
-          description: `**Winner:** ${w?.name || 'TBD'}\n**Score:** ${match.score1 ?? '?'} - ${match.score2 ?? '?'}`,
-          color: 0x50C878, // Green
-          footer: { text: "Official Tournament Bracket • Auto-posted" }
-        }]
-      })
-    });
-  } catch(e) {
-    console.error("Webhook failed to send", e);
-  }
-};
-
 const router = Router();
 
 const ResultSchema = z.object({
@@ -48,6 +20,7 @@ const ScheduleSchema = z.object({
   matchId: z.string().min(1),
   scheduledDate: z.string().max(64).optional(),
   bo: z.number().int().min(1).max(5).optional(),
+  streamUrl: z.union([z.string().trim().url().max(512), z.null()]).optional(),
 });
 
 // POST /api/matches/result
@@ -67,7 +40,6 @@ router.post('/result', requireApiKey, writeLimiter, validate(ResultSchema), asyn
     const updated = processMatchResult(stageData, matchId, winnerId, score1 ?? null, score2 ?? null);
     data[stage] = updated;
     await saveData(data);
-    await sendWebhook(data[stage].matches[matchId], stage, winnerId);
     res.json({ success: true, match: data[stage].matches[matchId] });
   } catch (e) {
     res.status(400).json({ error: e.message });
@@ -76,7 +48,7 @@ router.post('/result', requireApiKey, writeLimiter, validate(ResultSchema), asyn
 
 // PATCH /api/matches/schedule
 router.patch('/schedule', requireApiKey, writeLimiter, validate(ScheduleSchema), async (req, res) => {
-  const { stage, matchId, scheduledDate, bo } = req.body;
+  const { stage, matchId, scheduledDate, bo, streamUrl } = req.body;
   const data = await loadData();
 
   const match = data[stage]?.matches?.[matchId];
@@ -84,6 +56,7 @@ router.patch('/schedule', requireApiKey, writeLimiter, validate(ScheduleSchema),
 
   if (scheduledDate !== undefined) match.scheduledDate = scheduledDate;
   if (bo !== undefined) match.bo = bo;
+  if (streamUrl !== undefined) match.streamUrl = streamUrl;
   await saveData(data);
   res.json({ success: true, match });
 });

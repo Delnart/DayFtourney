@@ -73,6 +73,11 @@ export const MatchNode: React.FC<MatchNodeProps> = ({ match }) => {
       <div className="match-node-header">
         <span className="bo-badge">BO{bo}</span>
         {match.scheduledDate && <span className="schedule-badge">📅 {match.scheduledDate}</span>}
+        {match.streamUrl && (
+          <a className="stream-badge" href={match.streamUrl} target="_blank" rel="noreferrer">
+            📺 Stream
+          </a>
+        )}
         {match.bracket === 'LB' && <span className="bracket-badge lb">LB</span>}
         {match.bracket === 'UB' && <span className="bracket-badge ub">UB</span>}
         {match.bracket === 'GF' && <span className="bracket-badge gf">GF</span>}

@@ -191,6 +191,10 @@ h1 {
   display: none !important;
 }
 
+.advancers-column .match-cell::after {
+  display: none !important;
+}
+
 .round-column:first-child .match-cell::before {
   display: none;
 }
@@ -355,6 +359,21 @@ h1 {
 .bracket-badge.ub { background: #8b5cf6; color: white; }
 .bracket-badge.lb { background: #E75A4D; color: white; }
 .bracket-badge.gf { background: #50C878; color: #111; }
+
+.stream-badge {
+  font-family: var(--font-heading);
+  font-size: 0.65rem;
+  background: #50C878;
+  color: #111;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 1px;
+  text-decoration: none;
+}
+
+.stream-badge:hover {
+  filter: brightness(0.95);
+}
 
 /* Loser Tag */
 .loser-tag {

@@ -19,6 +19,7 @@ export interface Match {
   winnerId: string | null;
   loserId: string | null;
   state: 'upcoming' | 'ongoing' | 'finished' | 'tbd' | 'bye';
+  streamUrl?: string | null;
   nextWinMatchId: string | null;
   nextLoseMatchId: string | null;
 }

@@ -72,13 +72,14 @@ function generateBracket(teams, options = {}) {
   return generateDoubleElim(teams, bracketSize, matches, rounds);
 }
 
-function createMatch(id, { team1, team2, roundName, bracket, bo, scheduledDate, nextWinMatchId, nextLoseMatchId }) {
+function createMatch(id, { team1, team2, roundName, bracket, bo, scheduledDate, streamUrl, nextWinMatchId, nextLoseMatchId }) {
   return {
     id,
     roundName,
     bracket,          // 'UB' | 'LB' | 'GF' | 'THIRD'
     bo: bo || 1,
     scheduledDate: scheduledDate || null,
+    streamUrl: streamUrl || null,
     team1: team1 || null,
     team2: team2 || null,
     score1: null,

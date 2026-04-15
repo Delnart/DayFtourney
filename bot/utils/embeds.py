@@ -40,6 +40,8 @@ def match_embed(match: dict, stage: str) -> nextcord.Embed:
 
     if match.get("scheduledDate"):
         embed.add_field(name="📅 Scheduled", value=match["scheduledDate"], inline=True)
+    if match.get("streamUrl"):
+        embed.add_field(name="📺 Stream", value=f"[Open stream]({match['streamUrl']})", inline=True)
     if match.get("nextWinMatchId"):
         embed.add_field(name="Winner →", value=f"`{match['nextWinMatchId']}`", inline=True)
     if match.get("nextLoseMatchId"):

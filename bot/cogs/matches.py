@@ -1,6 +1,5 @@
 """Matches cog — /match result, /match schedule, /match info"""
 
-import os
 import nextcord
 from nextcord.ext import commands
 from nextcord import Interaction, SlashOption
@@ -100,13 +99,6 @@ class MatchResultModal(ui.Modal):
             updated_match = result["match"]
             embed = embeds.match_embed(updated_match, stage)
 
-            # Post to results channel
-            results_channel_id = int(os.getenv("RESULTS_CHANNEL_ID", "0"))
-            if results_channel_id:
-                channel = self.bot.get_channel(results_channel_id)
-                if channel:
-                    await channel.send(embed=embed)
-
             await interaction.followup.send(embed=embed)
         except Exception as e:
             await interaction.followup.send(embed=embeds.error_embed(str(e)))
@@ -135,10 +127,16 @@ class MatchScheduleModal(ui.Modal):
             required=False,
             max_length=1,
         )
+        self.stream_url_input = ui.TextInput(
+            label="Stream URL (optional)",
+            placeholder="https://twitch.tv/...",
+            required=False,
+        )
         self.add_item(self.stage_input)
         self.add_item(self.match_input)
         self.add_item(self.date_input)
         self.add_item(self.bo_input)
+        self.add_item(self.stream_url_input)
 
     async def callback(self, interaction: Interaction):
         stage = self.stage_input.value.strip()
@@ -146,15 +144,17 @@ class MatchScheduleModal(ui.Modal):
         date = self.date_input.value.strip()
         bo_raw = self.bo_input.value.strip()
         bo = int(bo_raw) if bo_raw.isdigit() else None
+        stream_url = self.stream_url_input.value.strip() or None
 
         await interaction.response.defer(ephemeral=True)
         try:
-            result = await api_client.schedule_match(stage, match_id, date, bo)
+            result = await api_client.schedule_match(stage, match_id, date, bo, stream_url)
             match = result["match"]
+            message = f"Match `{match_id}` scheduled for **{match['scheduledDate']}** (BO{match['bo']})"
+            if match.get("streamUrl"):
+                message += "\n📺 Stream link saved."
             await interaction.followup.send(
-                embed=embeds.success_embed(
-                    f"Match `{match_id}` scheduled for **{match['scheduledDate']}** (BO{match['bo']})"
-                ),
+                embed=embeds.success_embed(message),
                 ephemeral=True,
             )
         except Exception as e:
@@ -186,7 +186,7 @@ class MatchesCog(commands.Cog):
             MatchResultModal(self.bot, self.admin_role_ids)
         )
 
-    @match.subcommand(name="schedule", description="Set match date and BO format")
+    @match.subcommand(name="schedule", description="Set match date, BO format, and optional stream URL")
     async def match_schedule(self, interaction: Interaction):
         if not self.is_admin(interaction.user):
             return await interaction.response.send_message(

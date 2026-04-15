@@ -49,7 +49,7 @@ export const BracketStage1: React.FC<BracketStage1Props> = ({ stage }) => {
 
         {/* Qualified column */}
         {rounds.length > 0 && (
-          <div className="round-column no-lines" style={{ minWidth: '220px' }}>
+          <div className="round-column advancers-column" style={{ minWidth: '220px' }}>
             <div className="round-title">✅ Advances to Stage 2</div>
             <div className="round-matches">
               {rounds[rounds.length - 1]?.matchIds.map((mid, i) => {

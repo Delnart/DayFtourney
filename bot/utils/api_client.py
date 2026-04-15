@@ -61,13 +61,16 @@ async def submit_match_result(
 async def schedule_match(
     stage: str, match_id: str,
     scheduled_date: str | None = None,
-    bo: int | None = None
+    bo: int | None = None,
+    stream_url: str | None = None
 ) -> dict:
     payload = {"stage": stage, "matchId": match_id}
     if scheduled_date:
         payload["scheduledDate"] = scheduled_date
     if bo:
         payload["bo"] = bo
+    if stream_url is not None:
+        payload["streamUrl"] = stream_url
     async with aiohttp.ClientSession() as session:
         async with session.patch(f"{API_URL}/api/matches/schedule", json=payload, headers=_headers()) as r:
             r.raise_for_status()
